@@ -16,7 +16,7 @@ const packageDirs = [
 
 const installModules = dir => 
   new Promise((resolve, reject) =>  {
-    const cp = spawn('yarn', [], { dir });
+    const cp = spawn('yarn', [], { cwd: dir });
     cp.on('exit', code => {
       code == 0
         ? resolve() 
