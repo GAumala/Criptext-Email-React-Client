@@ -7,8 +7,10 @@ const FILE_SERVER_KEY = 'lofjksedbxuucdjjpnby';
 const PROD_DATA_TRANSFER_URL = 'https://transfer.criptext.com';
 
 const appDomain = 'criptext.com';
+const DEVICE_TYPE = 1;
 
 module.exports = {
+  DEVICE_TYPE,
   FILE_SERVER_APP_ID,
   FILE_SERVER_KEY,
   PROD_SERVER_URL,

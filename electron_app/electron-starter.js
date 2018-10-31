@@ -11,6 +11,7 @@ const loadingWindow = require('./src/windows/loading');
 const composerWindowManager = require('./src/windows/composer');
 const { template } = require('./src/windows/menu');
 require('./src/ipc/utils.js')
+require('./src/ipc/login.js')
 
 async function initApp() {
   try {
