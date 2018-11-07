@@ -23,12 +23,15 @@ import {
   getEmailsByThreadId,
   deleteEmailLabel,
   cleanDatabase,
-  logoutApp
+  logoutApp,
+  setInternetConnectionStatus
 } from './electronInterface';
-import { EmailUtils } from './electronUtilsInterface';
 import {
+  checkEmailIsTo,
   formEmailLabel,
   formFilesFromData,
+  formIncomingEmailFromData,
+  getRecipientIdFromEmailAddressTag,
   validateEmailStatusToSet
 } from './EmailUtils';
 import { SocketCommand, appDomain, EmailStatus } from './const';
@@ -243,23 +246,20 @@ const handleNewMessageEvent = async ({ rowid, params }) => {
     to,
     toArray
   } = params;
-  const {
-    recipientId,
-    isExternal
-  } = EmailUtils.getRecipientIdFromEmailAddressTag(from);
+  const { recipientId, isExternal } = getRecipientIdFromEmailAddressTag(from);
   const [prevEmail] = await getEmailByKey(metadataKey);
   const isSpam = labels
     ? labels.find(label => label === LabelType.spam.text)
     : undefined;
   const InboxLabelId = LabelType.inbox.id;
   const SentLabelId = LabelType.sent.id;
-  const isToMe = EmailUtils.checkEmailIsTo({
+  const isToMe = checkEmailIsTo({
     to: to || toArray,
     cc: cc || ccArray,
     bcc: bcc || bccArray,
     type: 'to'
   });
-  const isFromMe = EmailUtils.checkEmailIsTo({ from, type: 'from' });
+  const isFromMe = checkEmailIsTo({ from, type: 'from' });
   let eventParams = {};
 
   if (!prevEmail) {
@@ -298,7 +298,7 @@ const handleNewMessageEvent = async ({ rowid, params }) => {
       date,
       from,
       isEmailApp: !!messageType,
-      isToMe,
+      isFromMe,
       metadataKey,
       deviceId: senderDeviceId,
       subject,
@@ -306,7 +306,7 @@ const handleNewMessageEvent = async ({ rowid, params }) => {
       threadId,
       unread
     };
-    const { email, recipients } = await EmailUtils.formIncomingEmailFromData(
+    const { email, recipients } = await formIncomingEmailFromData(
       data,
       isExternal
     );
@@ -647,14 +647,22 @@ ipcRenderer.on('update-drafts', (ev, shouldUpdateBadge) => {
   emitter.emit(Event.REFRESH_THREADS, { labelIds: [labelId] });
 });
 
-ipcRenderer.on('display-message-email-sent', (ev, { threadId }) => {
-  const messageData = {
-    ...Messages.success.emailSent,
-    type: MessageType.SUCCESS,
-    params: { threadId }
-  };
-  emitter.emit(Event.DISPLAY_MESSAGE, messageData);
-});
+ipcRenderer.on(
+  'display-message-email-sent',
+  (ev, { threadId, hasExternalPassphrase }) => {
+    const messageData = hasExternalPassphrase
+      ? {
+          ...Messages.success.rememberSharePassphrase,
+          type: MessageType.SUCCESS
+        }
+      : {
+          ...Messages.success.emailSent,
+          type: MessageType.SUCCESS,
+          params: { threadId }
+        };
+    emitter.emit(Event.DISPLAY_MESSAGE, messageData);
+  }
+);
 
 ipcRenderer.on('display-message-success-download', () => {
   const messageData = {
@@ -709,7 +717,22 @@ ipcRenderer.on('update-available', () => {
   emitter.emit(Event.UPDATE_AVAILABLE, { value: true });
 });
 
-/* Window events: handle
+/* Window events: handle */
+ipcRenderer.on('check-network-status', () => {
+  const isOnline = window.navigator.onLine;
+  setInternetConnectionStatus(isOnline);
+  if (isOnline) {
+    processPendingEvents();
+  }
+});
+
+export const processPendingEvents = () => {
+  setTimeout(() => {
+    ipcRenderer.send('process-pending-events');
+  }, 1000);
+};
+
+/* Window events
   ----------------------------- */
 export const sendOpenEventErrorMessage = () => {
   const messageData = {

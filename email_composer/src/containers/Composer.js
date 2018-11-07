@@ -18,7 +18,6 @@ import {
   createFile,
   sendEventToMailbox
 } from './../utils/electronInterface';
-import { EmailUtils } from './../utils/electronUtilsInterface';
 import {
   areEmptyAllArrays,
   updateObjectFieldsInArray
@@ -30,6 +29,7 @@ import {
   formDataToReply,
   formComposerDataWithSignature,
   formNewEmailFromData,
+  formOutgoingEmailFromData,
   parseEmailAddress
 } from './../utils/EmailUtils';
 import {
@@ -414,6 +414,7 @@ class ComposerWrapper extends Component {
 
   sendMessage = async secure => {
     this.setState({ status: Status.WAITING });
+    const temporalThreadId = `<criptext-temp-${Date.now()}>`;
     const data = {
       bccEmails: this.state.bccEmails,
       body: this.state.newHtmlBody,
@@ -426,14 +427,14 @@ class ComposerWrapper extends Component {
       status: EmailStatus.SENDING,
       textSubject: this.state.textSubject,
       toEmails: this.state.toEmails,
-      threadId: this.state.threadId
+      threadId: this.state.threadId || temporalThreadId
     };
     const {
       emailData,
       criptextRecipients,
       externalRecipients,
       body
-    } = EmailUtils.formOutgoingEmailFromData(data);
+    } = formOutgoingEmailFromData(data);
     let emailId, key;
     try {
       [emailId] = await createEmail(emailData);
@@ -474,7 +475,11 @@ class ComposerWrapper extends Component {
         status: EmailStatus.SENT
       };
       await updateEmail(emailParams);
-      closeComposerWindow({ threadId, emailId });
+      closeComposerWindow({
+        threadId,
+        emailId,
+        hasExternalPassphrase: !!externalEmailPassword
+      });
     } catch (e) {
       if (e.message.includes('SQLITE_CONSTRAINT')) {
         // To remove
@@ -521,7 +526,7 @@ class ComposerWrapper extends Component {
       threadId: this.state.threadId,
       status: EmailStatus.NONE
     };
-    const { emailData } = EmailUtils.formOutgoingEmailFromData(data);
+    const { emailData } = formOutgoingEmailFromData(data);
     saveDraftChanges(emailData);
   };
 }

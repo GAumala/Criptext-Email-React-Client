@@ -9,9 +9,13 @@ const dialogWindow = require('./src/windows/dialog');
 const mailboxWindow = require('./src/windows/mailbox');
 const loadingWindow = require('./src/windows/loading');
 const composerWindowManager = require('./src/windows/composer');
-const { template } = require('./src/windows/menu');
+const { template, showWindows } = require('./src/windows/menu');
+const { processEventsQueue } = require('./src/eventQueueManager');
+
 require('./src/ipc/utils.js')
 require('./src/ipc/login.js')
+
+globalManager.forcequit.set(false);
 
 async function initApp() {
   try {
@@ -101,13 +105,17 @@ async function initApp() {
     }
   });
 
+  ipcMain.on('process-pending-events', () => {
+    processEventsQueue();
+  });
+
   //   Composer
   ipcMain.on('create-composer', () => {
     composerWindowManager.openNewComposer();
   });
 
-  ipcMain.on('close-composer', (e, { composerId, emailId, threadId }) => {
-    composerWindowManager.destroy({ composerId, emailId, threadId });
+  ipcMain.on('close-composer', (e, { composerId, emailId, threadId, hasExternalPassphrase }) => {
+    composerWindowManager.destroy({ composerId, emailId, threadId, hasExternalPassphrase });
   });
 
   ipcMain.on('save-draft-changes', (e, windowParams) => {
@@ -187,7 +195,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('activate', () => {
-  mailboxWindow.show();
+  showWindows();
 });
 
 app.on('before-quit', function() {

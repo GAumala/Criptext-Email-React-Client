@@ -7,7 +7,6 @@ const path = require('path');
 const opn = require('opn');
 
 let mailboxWindow;
-globalManager.forcequit.set(false);
 
 const mailboxSize = {
   width: 1400,
@@ -89,6 +88,7 @@ const show = async () => {
       mailboxWindow.show();
     });
     mailboxWindow.on('focus', () => {
+      send('check-network-status');
       if (!globalManager.windowsEvents.checkDisabled()) {
         send('get-events');
       }
