@@ -141,7 +141,7 @@ class ComposerWrapper extends Component {
       const composerData = await this.getComposerDataByType(this.emailToEdit);
       state = {
         ...composerData,
-        status: Status.ENABLED
+        status: composerData.status || Status.ENABLED
       };
     } else {
       const composerData = await this.getDefaultComposerWithSignature();
@@ -464,7 +464,7 @@ class ComposerWrapper extends Component {
         await createFile(filesDbParams);
       }
 
-      const { metadataKey, date } = res.body;
+      const { metadataKey, date, messageId } = res.body;
       const threadId = this.state.threadId || res.body.threadId;
       key = metadataKey;
       const emailParams = {
@@ -472,7 +472,8 @@ class ComposerWrapper extends Component {
         key,
         threadId,
         date,
-        status: EmailStatus.SENT
+        status: EmailStatus.SENT,
+        messageId
       };
       await updateEmail(emailParams);
       closeComposerWindow({

@@ -429,7 +429,9 @@ const formEmailContact = ({ emailId, contactStored, contacts, type }) => {
     } else {
       email = contactToSearch;
     }
-    const { id } = contactStored.find(contact => contact.email === email);
+    const { id } = contactStored.find(
+      contact => contact.email === email.toLowerCase()
+    );
     return {
       emailId,
       contactId: id,
@@ -809,7 +811,8 @@ const updateEmail = ({
   status,
   content,
   preview,
-  unsendDate
+  unsendDate,
+  messageId
 }) => {
   const params = noNulls({
     key,
@@ -820,7 +823,8 @@ const updateEmail = ({
     status,
     content,
     preview,
-    unsendDate
+    unsendDate,
+    messageId
   });
   const whereParam = id ? { id } : { key };
   return db
